@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图片拖动排序测试页面</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      font-size: 28px;
+      color: #333;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .controls {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #555;
+    }
+
+    input[type="number"] {
+      width: 100px;
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    input[type="number"]:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    button {
+      padding: 10px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .stats {
+      text-align: center;
+      margin-top: 15px;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    .image-item {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .image-item:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .image-item canvas {
+      width: 100%;
+      height: 200px;
+      display: block;
+    }
+
+    .image-info {
+      padding: 12px;
+      text-align: center;
+      font-size: 14px;
+      color: #666;
+      background: #f9f9f9;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: white;
+      font-size: 18px;
+    }
+
+    .empty-state svg {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 20px;
+      opacity: 0.8;
+    }
+
+    @media (max-width: 768px) {
+      .image-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+      }
+
+      .controls {
+        flex-direction: column;
+      }
+
+      input[type="number"] {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🖼️ 图片拖动排序测试页面</h1>
+
+      <div class="controls">
+        <div class="control-group">
+          <label for="imageCount">生成图片数量:</label>
+          <input type="number" id="imageCount" min="1" max="100" value="10">
+        </div>
+
+        <div class="control-group">
+          <label for="imageSize">图片尺寸:</label>
+          <input type="number" id="imageSize" min="50" max="500" value="200">
+          <span style="color: #888;">px</span>
+        </div>
+
+        <button onclick="generateImages()">🎨 生成图片</button>
+        <button onclick="clearImages()" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">🗑️ 清空</button>
+      </div>
+
+      <div class="stats" id="stats">
+        点击"生成图片"按钮开始测试
+      </div>
+    </div>
+
+    <div id="imageGrid" class="image-grid">
+      <div class="empty-state">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+        </svg>
+        <div>暂无图片，请生成测试图片</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentImages = [];
+
+    function generateImages() {
+      const count = parseInt(document.getElementById('imageCount').value);
+      const size = parseInt(document.getElementById('imageSize').value);
+
+      if (!count || count < 1 || count > 100) {
+        alert('请输入1-100之间的数字');
+        return;
+      }
+
+      if (!size || size < 50 || size > 500) {
+        alert('请输入50-500之间的尺寸');
+        return;
+      }
+
+      const grid = document.getElementById('imageGrid');
+      grid.innerHTML = '';
+      currentImages = [];
+
+      // 生成图片
+      for (let i = 1; i <= count; i++) {
+        const canvas = createNumberImage(i, size);
+        const item = createImageItem(canvas, i);
+        grid.appendChild(item);
+        currentImages.push(canvas.toDataURL());
+      }
+
+      updateStats();
+    }
+
+    function createNumberImage(number, size) {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // 随机背景色
+      const hue = (number * 137.5) % 360; // 黄金角度分布
+      const saturation = 70 + (number % 20);
+      const lightness = 80 + (number % 15);
+      const bgColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+
+      // 背景
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, size, size);
+
+      // 边框
+      ctx.strokeStyle = `hsl(${hue}, ${saturation}%, ${lightness - 20}%)`;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(1.5, 1.5, size - 3, size - 3);
+
+      // 数字
+      ctx.fillStyle = '#333';
+      ctx.font = `bold ${size * 0.5}px Arial, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(number.toString(), size / 2, size / 2);
+
+      // 小标签
+      ctx.font = `${size * 0.12}px Arial`;
+      ctx.fillStyle = '#666';
+      ctx.fillText(`图片 #${number}`, size / 2, size * 0.85);
+
+      return canvas;
+    }
+
+    function createImageItem(canvas, number) {
+      const item = document.createElement('div');
+      item.className = 'image-item';
+
+      const clonedCanvas = document.createElement('canvas');
+      clonedCanvas.width = canvas.width;
+      clonedCanvas.height = canvas.height;
+      const ctx = clonedCanvas.getContext('2d');
+      ctx.drawImage(canvas, 0, 0);
+
+      const info = document.createElement('div');
+      info.className = 'image-info';
+      info.textContent = `图片 ${number} (${canvas.width}×${canvas.height}px)`;
+
+      item.appendChild(clonedCanvas);
+      item.appendChild(info);
+
+      return item;
+    }
+
+    function clearImages() {
+      const grid = document.getElementById('imageGrid');
+      grid.innerHTML = `
+        <div class="empty-state">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+          </svg>
+          <div>暂无图片，请生成测试图片</div>
+        </div>
+      `;
+      currentImages = [];
+      updateStats();
+    }
+
+    function updateStats() {
+      const stats = document.getElementById('stats');
+      const count = currentImages.length;
+
+      if (count === 0) {
+        stats.textContent = '点击"生成图片"按钮开始测试';
+      } else {
+        stats.innerHTML = `
+          已生成 <strong>${count}</strong> 张测试图片 |
+          提示: 右键扩展图标 → 点击"下载页面图片"即可测试拖动排序
+        `;
+      }
+    }
+
+    // 页面加载时自动生成10张图片
+    window.addEventListener('load', () => {
+      generateImages();
+    });
+
+    // 快捷键支持
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.target.id === 'imageCount' || e.target.id === 'imageSize')) {
+        generateImages();
+      }
+    });
+  </script>
+</body>
+</html>
